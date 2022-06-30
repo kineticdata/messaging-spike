@@ -1,5 +1,12 @@
 # MessagingSpike
 
+Setup language dependencies (assumes asdf is already installed)
+
+  * Install elixir `asdf plugin add elixir`
+  * Install erlang `asdf plugin add erlang`
+
+Specific versions of the languages above are defined in the .tools-versions file at the root of this repository.
+
 To start your Phoenix server:
 
   * Install dependencies with `mix deps.get`
