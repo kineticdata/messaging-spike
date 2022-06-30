@@ -4,6 +4,7 @@ Setup language dependencies (assumes asdf is already installed)
 
   * Install elixir `asdf plugin add elixir`
   * Install erlang `asdf plugin add erlang`
+  * Install package versions `asdf install`
 
 Specific versions of the languages above are defined in the .tools-versions file at the root of this repository.
 
