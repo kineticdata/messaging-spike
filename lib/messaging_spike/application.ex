@@ -13,9 +13,10 @@ defmodule MessagingSpike.Application do
       # Start the PubSub system
       {Phoenix.PubSub, name: MessagingSpike.PubSub},
       # Start the Endpoint (http/https)
-      MessagingSpikeWeb.Endpoint
+      MessagingSpikeWeb.Endpoint,
       # Start a worker by calling: MessagingSpike.Worker.start_link(arg)
       # {MessagingSpike.Worker, arg}
+      MessagingSpike.Brokers.Rabbit
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html

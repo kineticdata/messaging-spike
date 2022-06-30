@@ -49,3 +49,9 @@ config :phoenix, :stacktrace_depth, 20
 
 # Initialize plugs at runtime for faster development compilation
 config :phoenix, :plug_init_mode, :runtime
+
+config :messaging_spike, MessagingSpike.Brokers.Rabbit,
+  host: "localhost",
+  port: 5672,
+  username: "guest",
+  password: "guest"

@@ -7,6 +7,13 @@ defmodule MessagingSpikeWeb.Router do
 
   scope "/api", MessagingSpikeWeb do
     pipe_through :api
+
+    post("/blocking-request/:topic", MessageController, :blocking_request)
+    # TODO: "/fire-and-forget/:topic"
+    # TODO: "/broadcast/:topic"
+    # TODO: "/publish/:topic"
+    # TODO: "/subscribe/:topic"
+    # TODO: "/unsubscribe/:topic"
   end
 
   # Enables LiveDashboard only for development
