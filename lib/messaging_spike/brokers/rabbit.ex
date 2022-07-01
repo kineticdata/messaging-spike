@@ -24,6 +24,12 @@ defmodule MessagingSpike.Brokers.Rabbit do
 
     {:ok, conn} = AMQP.Connection.open("amqp://#{host}:#{port}")
     {:ok, chan} = AMQP.Channel.open(conn)
+
+    {:ok, _consumer_tag} =
+      AMQP.Queue.subscribe(chan, "faq", fn payload, _meta ->
+        IO.inspect(:erlang.binary_to_term(payload))
+      end)
+
     {:ok, {chan}}
   end
 
