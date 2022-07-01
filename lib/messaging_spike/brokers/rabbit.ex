@@ -11,6 +11,14 @@ defmodule MessagingSpike.Brokers.Rabbit do
     GenServer.call(__MODULE__, {:publish, topic, payload})
   end
 
+  def dequeue(topic) do
+    GenServer.call(__MODULE__, {:dequeue, topic})
+  end
+
+  def add(queue) do
+    GenServer.call(__MODULE__, {:add, queue})
+  end
+
   # Callbacks
 
   def init(_init_arg) do
@@ -25,10 +33,10 @@ defmodule MessagingSpike.Brokers.Rabbit do
     {:ok, conn} = AMQP.Connection.open("amqp://#{host}:#{port}")
     {:ok, chan} = AMQP.Channel.open(conn)
 
-    {:ok, _consumer_tag} =
-      AMQP.Queue.subscribe(chan, "faq", fn payload, _meta ->
-        IO.inspect(:erlang.binary_to_term(payload))
-      end)
+    # {:ok, _consumer_tag} =
+    #   AMQP.Queue.subscribe(chan, "faq", fn payload, _meta ->
+    #     IO.inspect(:erlang.binary_to_term(payload))
+    #   end)
 
     {:ok, {chan}}
   end
@@ -37,6 +45,8 @@ defmodule MessagingSpike.Brokers.Rabbit do
     result =
       case command do
         {:publish, topic, payload} -> AMQP.Basic.publish(chan, topic, "", payload)
+        {:dequeue, topic} -> AMQP.Basic.get(chan, topic)
+        {:add, queue} -> AMQP.Queue.declare(chan, queue)
       end
 
     {:reply, result, {chan}}

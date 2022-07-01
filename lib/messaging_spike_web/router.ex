@@ -14,6 +14,8 @@ defmodule MessagingSpikeWeb.Router do
     # TODO: "/publish/:topic"
     # TODO: "/subscribe/:topic"
     # TODO: "/unsubscribe/:topic"
+    post("/add/:queue", MessageController, :add)
+    get("/dequeue/:topic", MessageController, :dequeue)
   end
 
   # Enables LiveDashboard only for development
