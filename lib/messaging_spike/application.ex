@@ -12,17 +12,19 @@ defmodule MessagingSpike.Application do
       MessagingSpikeWeb.Telemetry,
       # Start the PubSub system
       {Phoenix.PubSub, name: MessagingSpike.PubSub},
+      MessagingSpike.Brokers.Rabbit,
       # Start the Endpoint (http/https)
-      MessagingSpikeWeb.Endpoint,
+      MessagingSpikeWeb.Endpoint
       # Start a worker by calling: MessagingSpike.Worker.start_link(arg)
       # {MessagingSpike.Worker, arg}
-      MessagingSpike.Brokers.Rabbit
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html
     # for other strategies and supported options
     opts = [strategy: :one_for_one, name: MessagingSpike.Supervisor]
-    Supervisor.start_link(children, opts)
+    result = Supervisor.start_link(children, opts)
+    MessagingSpike.Listeners.init()
+    result
   end
 
   # Tell Phoenix to update the endpoint configuration
