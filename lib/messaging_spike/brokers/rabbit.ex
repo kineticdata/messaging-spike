@@ -23,6 +23,10 @@ defmodule MessagingSpike.Brokers.Rabbit do
     GenServer.call(__MODULE__, {:subscribe, topic, fun})
   end
 
+  def declare(topic) do
+    GenServer.call(__MODULE__, {:declare, topic})
+  end
+
   # Callbacks
 
   def init(_init_arg) do
@@ -58,8 +62,10 @@ defmodule MessagingSpike.Brokers.Rabbit do
         {:subscribe, topic, fun} ->
           AMQP.Queue.subscribe(chan, topic, fun)
 
-        {:get_conn} ->
-          chan
+        {:declare, topic} ->
+          AMQP.Exchange.declare(chan, topic, :direct, durable: true)
+          AMQP.Queue.declare(chan, topic, durable: true)
+          AMQP.Queue.bind(chan, topic, topic)
       end
 
     {:reply, result, {chan}}
