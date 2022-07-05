@@ -5,8 +5,14 @@ defmodule MessagingSpike.Listeners do
     Rabbit.declare("faq")
 
     Rabbit.subscribe("faq", fn message, meta ->
-      IO.inspect(:erlang.binary_to_term(message), label: "message")
-      IO.inspect(meta, label: "meta")
+      question = Map.get(:erlang.binary_to_term(message), "question")
+      answer = "Shayne"
+
+      reply_to = Map.get(meta, :reply_to)
+      delivery_tag = Map.get(meta, :delivery_tag)
+
+      Rabbit.publish(reply_to, answer)
+      Rabbit.ack(delivery_tag)
     end)
   end
 end
