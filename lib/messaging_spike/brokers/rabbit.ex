@@ -56,9 +56,6 @@ defmodule MessagingSpike.Brokers.Rabbit do
         {:add, queue} ->
           AMQP.Queue.declare(chan, queue)
 
-        {:publish, topic, payload} ->
-          AMQP.Basic.publish(chan, topic, "", payload)
-
         {:subscribe, topic, fun} ->
           AMQP.Queue.subscribe(chan, topic, fun)
 
