@@ -8,20 +8,28 @@ defmodule MessagingSpike.Brokers.Rabbit do
   end
 
   def rpc(topic, payload) do
-    spawn(fn ->
-      pid = self()
-      correlation_id = erlang.unique_integer |> :erlang.integer_to_binary() |> Base.encode64()
+    task =
+      Task.async(fn ->
+        pid = self()
 
-      GenServer.call(__MODULE__, {:rpc_publish, MY_PID})
+        correlation_id =
+          :erlang.unique_integer() |> :erlang.integer_to_binary() |> Base.encode64()
 
-      receive do
-        {:message_type, value} ->
-          nil
-          # code
-      end
-    end)
+        GenServer.call(__MODULE__, {:rpc_publish, topic, payload, correlation_id, pid})
 
-    ...(wait(here(for response)))
+        message =
+          receive do
+            any -> any
+          end
+
+        message
+      end)
+
+    Task.await(task)
+  end
+
+  def rpc_reply(correlation_id, payload) do
+    GenServer.call(__MODULE__, {:rpc_reply, correlation_id, payload})
   end
 
   def publish(topic, payload) do
@@ -65,7 +73,10 @@ defmodule MessagingSpike.Brokers.Rabbit do
     {:ok, %{queue: reply_queue}} =
       AMQP.Queue.declare(chan, "", exclusive: true, auto_delete: true)
 
-    {:ok} = AMQP.Queue.subscribe(chan, topic, fun)
+    {:ok} =
+      AMQP.Queue.subscribe(chan, reply_queue, fn message, meta ->
+        rpc_reply(Map.get(meta, :correlation_id), message)
+      end)
 
     {:ok, {chan, reply_queue, %{}}}
   end
@@ -85,6 +96,10 @@ defmodule MessagingSpike.Brokers.Rabbit do
             correlation_id: correlation_id,
             reply_to: reply_queue
           )
+
+        {:rpc_reply, correlation_id, payload} ->
+          pid = Map.get(pid_map, correlation_id)
+          send(pid, payload)
 
         {:dequeue, topic} ->
           AMQP.Basic.get(chan, topic)
