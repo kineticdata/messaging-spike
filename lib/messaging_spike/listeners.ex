@@ -4,10 +4,8 @@ defmodule MessagingSpike.Listeners do
   def init do
     Rabbit.declare("faq")
 
-    Rabbit.subscribe("faq", fn message, meta ->
-      question = Map.get(:erlang.binary_to_term(message), "question")
-      answer = :random.uniform(100)
-
+    Rabbit.subscribe("faq", fn _message, meta ->
+      answer = :rand.uniform(100)
       reply_to = Map.get(meta, :reply_to)
       delivery_tag = Map.get(meta, :delivery_tag)
 

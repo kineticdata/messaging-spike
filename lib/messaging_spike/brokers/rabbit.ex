@@ -73,7 +73,7 @@ defmodule MessagingSpike.Brokers.Rabbit do
     {:ok, %{queue: reply_queue}} =
       AMQP.Queue.declare(chan, "", exclusive: true, auto_delete: true)
 
-    {:ok} =
+    {:ok, _subscriber_tag} =
       AMQP.Queue.subscribe(chan, reply_queue, fn message, meta ->
         rpc_reply(Map.get(meta, :correlation_id), message)
       end)
@@ -81,42 +81,37 @@ defmodule MessagingSpike.Brokers.Rabbit do
     {:ok, {chan, reply_queue, %{}}}
   end
 
-  def handle_call(command, _from, {chan, reply_queue, pid_map}) do
-    new_pid_map = pid_map
+  def handle_call(command, _from, state = {chan, reply_queue, pid_map}) do
+    case command do
+      {:publish, topic, payload} ->
+        {:reply, AMQP.Basic.publish(chan, "", topic, payload), state}
 
-    result =
-      case command do
-        {:publish, topic, payload} ->
-          AMQP.Basic.publish(chan, "", topic, payload)
+      {:rpc_publish, topic, payload, correlation_id, pid} ->
+        {:reply,
+         AMQP.Basic.publish(chan, "", topic, payload,
+           correlation_id: correlation_id,
+           reply_to: reply_queue
+         ), Map.put(pid_map, correlation_id, pid)}
 
-        {:rpc_publish, topic, payload, correlation_id, pid} ->
-          new_pid_map = Map.put(pid_map, correlation_id, pid)
+      {:rpc_reply, correlation_id, payload} ->
+        pid = Map.get(pid_map, correlation_id)
+        send(pid, payload)
+        {:reply, nil, state}
 
-          AMQP.Basic.publish(chan, "", topic, payload,
-            correlation_id: correlation_id,
-            reply_to: reply_queue
-          )
+      {:dequeue, topic} ->
+        {:reply, AMQP.Basic.get(chan, topic), state}
 
-        {:rpc_reply, correlation_id, payload} ->
-          pid = Map.get(pid_map, correlation_id)
-          send(pid, payload)
+      {:add, queue} ->
+        {:reply, AMQP.Queue.declare(chan, queue), state}
 
-        {:dequeue, topic} ->
-          AMQP.Basic.get(chan, topic)
+      {:subscribe, topic, fun} ->
+        {:reply, AMQP.Queue.subscribe(chan, topic, fun), state}
 
-        {:add, queue} ->
-          AMQP.Queue.declare(chan, queue)
+      {:declare, topic} ->
+        {:reply, AMQP.Queue.declare(chan, topic, durable: true), state}
 
-        {:subscribe, topic, fun} ->
-          AMQP.Queue.subscribe(chan, topic, fun)
-
-        {:declare, topic} ->
-          AMQP.Queue.declare(chan, topic, durable: true)
-
-        {:ack, delivery_tag} ->
-          AMQP.Basic.ack(chan, delivery_tag)
-      end
-
-    {:reply, result, {chan, reply_queue, new_pid_map}}
+      {:ack, delivery_tag} ->
+        {:reply, AMQP.Basic.ack(chan, delivery_tag), {chan, reply_queue, pid_map}}
+    end
   end
 end
