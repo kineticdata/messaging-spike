@@ -8,32 +8,17 @@ defmodule MessagingSpike.Brokers.Rabbit do
   end
 
   def rpc(topic, payload) do
-    task =
-      Task.async(fn ->
-        pid = self()
+    correlation_id = :erlang.unique_integer() |> :erlang.integer_to_binary() |> Base.encode64()
 
-        correlation_id =
-          :erlang.unique_integer() |> :erlang.integer_to_binary() |> Base.encode64()
+    GenServer.call(__MODULE__, {:rpc_publish, topic, payload, correlation_id, self()})
 
-        GenServer.call(__MODULE__, {:rpc_publish, topic, payload, correlation_id, pid})
-
-        message =
-          receive do
-            any -> any
-          end
-
-        message
-      end)
-
-    Task.await(task)
+    receive do
+      anything -> anything
+    end
   end
 
-  def rpc_reply(correlation_id, payload) do
-    GenServer.call(__MODULE__, {:rpc_reply, correlation_id, payload})
-  end
-
-  def publish(topic, payload) do
-    GenServer.call(__MODULE__, {:publish, topic, payload})
+  def publish(topic, payload, correlation_id \\ nil) do
+    GenServer.call(__MODULE__, {:publish, topic, payload, correlation_id})
   end
 
   def dequeue(topic) do
@@ -70,28 +55,25 @@ defmodule MessagingSpike.Brokers.Rabbit do
     {:ok, conn} = AMQP.Connection.open("amqp://#{host}:#{port}")
     {:ok, chan} = AMQP.Channel.open(conn)
 
-    {:ok, %{queue: reply_queue}} =
-      AMQP.Queue.declare(chan, "", exclusive: true, auto_delete: true)
+    {:ok, %{queue: reply_queue}} = AMQP.Queue.declare(chan, "", auto_delete: true)
 
-    {:ok, _subscriber_tag} =
-      AMQP.Queue.subscribe(chan, reply_queue, fn message, meta ->
-        rpc_reply(Map.get(meta, :correlation_id), message)
-      end)
+    {:ok, _sub_tag} = AMQP.Basic.consume(chan, reply_queue)
 
     {:ok, {chan, reply_queue, %{}}}
   end
 
   def handle_call(command, _from, state = {chan, reply_queue, pid_map}) do
     case command do
-      {:publish, topic, payload} ->
-        {:reply, AMQP.Basic.publish(chan, "", topic, payload), state}
+      {:publish, topic, payload, correlation_id} ->
+        {:reply, AMQP.Basic.publish(chan, "", topic, payload, correlation_id: correlation_id),
+         state}
 
       {:rpc_publish, topic, payload, correlation_id, pid} ->
         {:reply,
          AMQP.Basic.publish(chan, "", topic, payload,
            correlation_id: correlation_id,
            reply_to: reply_queue
-         ), Map.put(pid_map, correlation_id, pid)}
+         ), {chan, reply_queue, Map.put(pid_map, correlation_id, pid)}}
 
       {:rpc_reply, correlation_id, payload} ->
         pid = Map.get(pid_map, correlation_id)
@@ -111,7 +93,18 @@ defmodule MessagingSpike.Brokers.Rabbit do
         {:reply, AMQP.Queue.declare(chan, topic, durable: true), state}
 
       {:ack, delivery_tag} ->
-        {:reply, AMQP.Basic.ack(chan, delivery_tag), {chan, reply_queue, pid_map}}
+        {:reply, AMQP.Basic.ack(chan, delivery_tag), state}
+    end
+  end
+
+  def handle_info(message, state = {_chan, _reply_queue, pid_map}) do
+    case message do
+      {:basic_consume_ok, %{consumer_tag: _tag}} ->
+        {:noreply, state}
+
+      {:basic_deliver, message, meta} ->
+        send(Map.get(pid_map, Map.get(meta, :correlation_id)), message)
+        {:noreply, state}
     end
   end
 end

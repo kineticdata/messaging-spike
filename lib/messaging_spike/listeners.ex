@@ -2,15 +2,13 @@ defmodule MessagingSpike.Listeners do
   alias MessagingSpike.Brokers.Rabbit
 
   def init do
-    Rabbit.declare("faq")
+    Rabbit.declare("size")
 
-    Rabbit.subscribe("faq", fn _message, meta ->
-      answer = :rand.uniform(100)
+    Rabbit.subscribe("size", fn message, meta ->
+      correlation_id = Map.get(meta, :correlation_id)
       reply_to = Map.get(meta, :reply_to)
-      delivery_tag = Map.get(meta, :delivery_tag)
-
-      Rabbit.publish(reply_to, answer)
-      Rabbit.ack(delivery_tag)
+      result = to_string(String.length(message))
+      Rabbit.publish(reply_to, result, correlation_id)
     end)
   end
 end
