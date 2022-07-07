@@ -17,4 +17,9 @@ defmodule MessagingSpikeWeb.MessageController do
     Rabbit.add(queue)
     Plug.Conn.send_resp(conn, 200, "success")
   end
+
+  def size(conn, params) do
+    result = Rabbit.rpc("size", Map.get(params, "input"))
+    Plug.Conn.send_resp(conn, 200, result)
+  end
 end
