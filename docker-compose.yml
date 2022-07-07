@@ -1,9 +1,30 @@
 version: '2'
 
 services:
-  rabbit:
-    image: rabbitmq:3.9.13-management
-    container_name: messaging-spike-rabbit
+  # rabbit:
+  #   image: rabbitmq:3.9.13-management
+  #   container_name: messaging-spike-rabbit
+  #   ports:
+  #     - "5672:5672"
+  #     - "15672:15672"
+  nats:
+    image: nats:2.7.4
+    container_name: spike-nats
     ports:
-      - "5672:5672"
-      - "15672:15672"
+      - "4222:4222"
+      - "8222:8222"
+    command: --config nats-server.conf --jetstream --name alpha --routes nats://spike-nats:6222 --cluster nats://0.0.0.0:6222
+  nats-2:
+    image: nats:2.7.4
+    container_name: spike-nats-2
+    ports:
+      - "24222:4222"
+      - "28222:8222"
+    command: --config nats-server.conf --jetstream --name beta --routes nats://spike-nats:6222 --cluster nats://0.0.0.0:6222
+  nats-3:
+    image: nats:2.7.4
+    container_name: spike-nats-3
+    ports:
+      - "34222:4222"
+      - "38222:8222"
+    command: --config nats-server.conf --jetstream --name gamma --routes nats://spike-nats:6222 --cluster nats://0.0.0.0:6222
