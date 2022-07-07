@@ -14,6 +14,7 @@ defmodule MessagingSpike.Application do
       {Phoenix.PubSub, name: MessagingSpike.PubSub},
       MessagingSpike.Brokers.Rabbit,
       MessagingSpike.Settings,
+      MessagingSpike.Brokers.Nats,
       # Start the Endpoint (http/https)
       MessagingSpikeWeb.Endpoint
       # Start a worker by calling: MessagingSpike.Worker.start_link(arg)

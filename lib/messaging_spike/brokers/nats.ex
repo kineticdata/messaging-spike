@@ -1,0 +1,63 @@
+defmodule MessagingSpike.Brokers.Nats do
+  use GenServer
+
+  def start_link(init_arg) do
+    GenServer.start_link(__MODULE__, init_arg, name: __MODULE__)
+  end
+
+  # API
+
+  def get_conn do
+    GenServer.call(__MODULE__, {:get_conn})
+  end
+
+  def subscribe(topic, fun) do
+    GenServer.cast(__MODULE__, {:subscribe, topic, fun})
+  end
+
+  def publish(topic, message) do
+    GenServer.cast(__MODULE__, {:publish, topic, message})
+  end
+
+  # Callbacks
+
+  def init(_init_arg) do
+    {:ok,
+     [
+       host: host,
+       port: port
+     ]} = Application.fetch_env(:messaging_spike, __MODULE__)
+
+    {:ok, conn} = Gnat.start_link(%{host: host, port: port})
+
+    {:ok, {conn, %{}}}
+  end
+
+  def handle_call(request, _from, state = {conn, _funs}) do
+    case request do
+      {:get_conn} ->
+        {:reply, conn, state}
+    end
+  end
+
+  def handle_cast(request, state = {conn, funs}) do
+    case request do
+      {:publish, topic, message} ->
+        Gnat.pub(conn, topic, message)
+        {:noreply, state}
+
+      {:subscribe, topic, fun} ->
+        {:ok, sid} = Gnat.sub(conn, self(), topic)
+        {:noreply, {conn, Map.put(funs, sid, fun)}}
+    end
+  end
+
+  def handle_info(info, state = {_conn, funs}) do
+    case info do
+      {:msg, %{body: body, sid: sid}} ->
+        fun = Map.get(funs, sid)
+        fun.(body)
+        {:noreply, state}
+    end
+  end
+end

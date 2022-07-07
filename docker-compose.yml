@@ -1,12 +1,12 @@
 version: '2'
 
 services:
-  # rabbit:
-  #   image: rabbitmq:3.9.13-management
-  #   container_name: messaging-spike-rabbit
-  #   ports:
-  #     - "5672:5672"
-  #     - "15672:15672"
+  rabbit:
+    image: rabbitmq:3.9.13-management
+    container_name: spike-rabbit
+    ports:
+      - "5672:5672"
+      - "15672:15672"
   nats:
     image: nats:2.7.4
     container_name: spike-nats

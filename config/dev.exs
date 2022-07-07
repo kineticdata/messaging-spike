@@ -55,3 +55,7 @@ config :messaging_spike, MessagingSpike.Brokers.Rabbit,
   port: 5672,
   username: "guest",
   password: "guest"
+
+config :messaging_spike, MessagingSpike.Brokers.Nats,
+  host: "localhost",
+  port: 4222

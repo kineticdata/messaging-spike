@@ -39,7 +39,9 @@ defmodule MessagingSpike.MixProject do
       {:telemetry_poller, "~> 1.0"},
       {:jason, "~> 1.2"},
       {:plug_cowboy, "~> 2.5"},
-      {:amqp, "~> 3.1"}
+      {:amqp, "~> 3.1"},
+      {:gnat, "~> 1.5"},
+      {:jetstream, git: "https://github.com/mmmries/jetstream.git", branch: "master"}
     ]
   end
 
