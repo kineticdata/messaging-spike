@@ -10,7 +10,10 @@ defmodule MessagingSpikeWeb.Router do
 
     post("/blocking-request/:topic", MessageController, :blocking_request)
     # TODO: "/fire-and-forget/:topic"
-    # TODO: "/broadcast/:topic"
+    # put a map that writes to
+    put("/settings", MessageController, :update_settings)
+    # get the settings map
+    get("/settings", MessageController, :get_settings)
     # TODO: "/publish/:topic"
     # TODO: "/subscribe/:topic"
     # TODO: "/unsubscribe/:topic"

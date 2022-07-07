@@ -33,8 +33,20 @@ defmodule MessagingSpike.Brokers.Rabbit do
     GenServer.call(__MODULE__, {:subscribe, topic, fun})
   end
 
-  def declare(topic) do
-    GenServer.call(__MODULE__, {:declare, topic})
+  def declare(topic, is_delete) do
+    GenServer.call(__MODULE__, {:declare, topic, is_delete})
+  end
+
+  def declare_exchange(name) do
+    GenServer.call(__MODULE__, {:declare_exchange, name})
+  end
+
+  def bind(queue_name, exchange_name) do
+    GenServer.call(__MODULE__, {:bind, queue_name, exchange_name})
+  end
+
+  def update_settings(settings_map) do
+    GenServer.call(__MODULE__, {:update_settings, :erlang.term_to_binary(settings_map)})
   end
 
   def ack(delivery_tag) do
@@ -89,11 +101,20 @@ defmodule MessagingSpike.Brokers.Rabbit do
       {:subscribe, topic, fun} ->
         {:reply, AMQP.Queue.subscribe(chan, topic, fun), state}
 
-      {:declare, topic} ->
-        {:reply, AMQP.Queue.declare(chan, topic, durable: true), state}
+      {:declare, topic, is_delete} ->
+        {:reply, AMQP.Queue.declare(chan, topic, durable: true, auto_delete: is_delete), state}
+
+      {:declare_exchange, name} ->
+        {:reply, AMQP.Exchange.declare(chan, name, :fanout), state}
+
+      {:bind, queue_name, exchange_name} ->
+        {:reply, AMQP.Queue.bind(chan, queue_name, exchange_name), state}
 
       {:ack, delivery_tag} ->
         {:reply, AMQP.Basic.ack(chan, delivery_tag), state}
+
+      {:update_settings, settings_map} ->
+        {:reply, AMQP.Basic.publish(chan, "broadcast", "", settings_map), state}
     end
   end
 

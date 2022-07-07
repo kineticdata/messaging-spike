@@ -2,9 +2,10 @@ defmodule MessagingSpikeWeb.MessageController do
   use MessagingSpikeWeb, :controller
 
   alias MessagingSpike.Brokers.Rabbit
+  alias MessagingSpike.Settings
 
   def blocking_request(conn, params = %{"topic" => topic}) do
-    Rabbit.publish(topic, :erlang.term_to_binary(params))
+    Rabbit.publish(topic, :erlang.term_to_binary(params), true)
     Plug.Conn.send_resp(conn, 200, Jason.encode!(params))
   end
 
@@ -21,5 +22,16 @@ defmodule MessagingSpikeWeb.MessageController do
   def size(conn, params) do
     result = Rabbit.rpc("size", Map.get(params, "input"))
     Plug.Conn.send_resp(conn, 200, result)
+  end
+
+  def update_settings(conn, params) do
+    Rabbit.update_settings(params)
+    Plug.Conn.send_resp(conn, 200, "success")
+  end
+
+  def get_settings(conn, _params) do
+    {:ok, settings} = Settings.get()
+    {:ok, response_body} = Jason.encode(settings)
+    Plug.Conn.send_resp(conn, 200, response_body)
   end
 end
