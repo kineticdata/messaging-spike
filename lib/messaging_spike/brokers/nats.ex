@@ -19,6 +19,10 @@ defmodule MessagingSpike.Brokers.Nats do
     GenServer.cast(__MODULE__, {:publish, topic, message})
   end
 
+  def request(topic, message) do
+    Gnat.request(get_conn(), topic, message)
+  end
+
   # Callbacks
 
   def init(_init_arg) do
@@ -54,9 +58,15 @@ defmodule MessagingSpike.Brokers.Nats do
 
   def handle_info(info, state = {_conn, funs}) do
     case info do
-      {:msg, %{body: body, sid: sid}} ->
+      {:msg, %{body: body, sid: sid, reply_to: reply_to}} ->
         fun = Map.get(funs, sid)
-        fun.(body)
+
+        if reply_to do
+          fun.(body, reply_to)
+        else
+          fun.(body)
+        end
+
         {:noreply, state}
     end
   end

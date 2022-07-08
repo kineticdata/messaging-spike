@@ -3,6 +3,7 @@ defmodule MessagingSpikeWeb.MessageController do
 
   alias MessagingSpike.Brokers.Rabbit
   alias MessagingSpike.Settings
+  alias MessagingSpike.Brokers.Nats
 
   def blocking_request(conn, params = %{"topic" => topic}) do
     Rabbit.publish(topic, :erlang.term_to_binary(params), true)
@@ -26,6 +27,11 @@ defmodule MessagingSpikeWeb.MessageController do
 
   def update_settings(conn, params) do
     Rabbit.update_settings(params)
+    Plug.Conn.send_resp(conn, 200, "success")
+  end
+
+  def update_settings_nats(conn, params) do
+    Nats.publish("settings", :erlang.term_to_binary(params))
     Plug.Conn.send_resp(conn, 200, "success")
   end
 
