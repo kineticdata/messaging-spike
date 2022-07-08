@@ -1,30 +1,63 @@
 version: '2'
 
 services:
-  rabbit:
+  rabbit-1:
     image: rabbitmq:3.9.13-management
-    container_name: spike-rabbit
+    container_name: spike-rabbit-1
+    hostname: spike-rabbit-1
     ports:
       - "5672:5672"
       - "15672:15672"
+    environment:
+      - RABBITMQ_CONFIG_FILE=/config/rabbitmq
+      - RABBITMQ_ERLANG_COOKIE=secret_cookie
+    volumes:
+      - $PWD/config/containers/rabbit/rabbit-1/rabbitmq.conf:/config/rabbitmq.conf
+      - $PWD/config/containers/rabbit/rabbit-1/enabled_plugins:/etc/rabbitmq/enabled_plugins
+  rabbit-2:
+    image: rabbitmq:3.9.13-management
+    container_name: spike-rabbit-2
+    hostname: spike-rabbit-2
+    ports:
+      - "5673:5672"
+      - "15673:15672"
+    environment:
+      - RABBITMQ_CONFIG_FILE=/config/rabbitmq
+      - RABBITMQ_ERLANG_COOKIE=secret_cookie
+    volumes:
+      - $PWD/config/containers/rabbit/rabbit-2/rabbitmq.conf:/config/rabbitmq.conf
+      - $PWD/config/containers/rabbit/rabbit-2/enabled_plugins:/etc/rabbitmq/enabled_plugins
+  rabbit-3:
+    image: rabbitmq:3.9.13-management
+    container_name: spike-rabbit-3
+    hostname: spike-rabbit-3
+    ports:
+      - "5674:5672"
+      - "15674:15672"
+    environment:
+      - RABBITMQ_CONFIG_FILE=/config/rabbitmq
+      - RABBITMQ_ERLANG_COOKIE=secret_cookie
+    volumes:
+      - $PWD/config/containers/rabbit/rabbit-3/rabbitmq.conf:/config/rabbitmq.conf
+      - $PWD/config/containers/rabbit/rabbit-3/enabled_plugins:/etc/rabbitmq/enabled_plugins
   nats:
     image: nats:2.7.4
-    container_name: spike-nats
+    container_name: spike-nats-1
     ports:
       - "4222:4222"
       - "8222:8222"
-    command: --config nats-server.conf --jetstream --name alpha --routes nats://spike-nats:6222 --cluster nats://0.0.0.0:6222
+    command: --config nats-server.conf --jetstream --name alpha --routes nats://spike-nats-1:6222 --cluster nats://0.0.0.0:6222
   nats-2:
     image: nats:2.7.4
     container_name: spike-nats-2
     ports:
-      - "24222:4222"
-      - "28222:8222"
-    command: --config nats-server.conf --jetstream --name beta --routes nats://spike-nats:6222 --cluster nats://0.0.0.0:6222
+      - "4223:4222"
+      - "8223:8222"
+    command: --config nats-server.conf --jetstream --name beta --routes nats://spike-nats-1:6222 --cluster nats://0.0.0.0:6222
   nats-3:
     image: nats:2.7.4
     container_name: spike-nats-3
     ports:
-      - "34222:4222"
-      - "38222:8222"
-    command: --config nats-server.conf --jetstream --name gamma --routes nats://spike-nats:6222 --cluster nats://0.0.0.0:6222
+      - "4224:4222"
+      - "8224:8222"
+    command: --config nats-server.conf --jetstream --name gamma --routes nats://spike-nats-1:6222 --cluster nats://0.0.0.0:6222
