@@ -59,3 +59,8 @@ config :messaging_spike, MessagingSpike.Brokers.Rabbit,
 config :messaging_spike, MessagingSpike.Brokers.Nats,
   host: "localhost",
   port: 4222
+
+config :kafka_ex,
+  brokers: [
+    {"localhost", 9092}
+  ]

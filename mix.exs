@@ -41,7 +41,8 @@ defmodule MessagingSpike.MixProject do
       {:plug_cowboy, "~> 2.5"},
       {:amqp, "~> 3.1"},
       {:gnat, "~> 1.5"},
-      {:jetstream, git: "https://github.com/mmmries/jetstream.git", branch: "master"}
+      {:jetstream, git: "https://github.com/mmmries/jetstream.git", branch: "master"},
+      {:kafka_ex, "~> 0.12.1"}
     ]
   end
 

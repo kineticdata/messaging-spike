@@ -31,5 +31,19 @@ defmodule MessagingSpike.Listeners do
     Nats.subscribe("settings", fn message ->
       Settings.update(:erlang.binary_to_term(message))
     end)
+
+    spawn(fn ->
+      [
+        %KafkaEx.Protocol.Offset.Response{
+          partition_offsets: [%{error_code: :no_error, offset: [latest_offset], partition: 0}]
+        }
+      ] = KafkaEx.latest_offset("settings", 0)
+
+      KafkaEx.stream("settings", 0, offset: latest_offset - 1)
+      |> Stream.map(&Map.get(&1, :value))
+      |> Stream.map(&:erlang.binary_to_term/1)
+      |> Stream.each(&Settings.update(&1))
+      |> Stream.run()
+    end)
   end
 end

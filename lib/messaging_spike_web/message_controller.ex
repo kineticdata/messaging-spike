@@ -35,6 +35,11 @@ defmodule MessagingSpikeWeb.MessageController do
     Plug.Conn.send_resp(conn, 200, "success")
   end
 
+  def update_settings_kafka(conn, params) do
+    KafkaEx.produce("settings", 0, :erlang.term_to_binary(params))
+    Plug.Conn.send_resp(conn, 200, "success")
+  end
+
   def get_settings(conn, _params) do
     {:ok, settings} = Settings.get()
     {:ok, response_body} = Jason.encode(settings)
