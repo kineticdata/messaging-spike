@@ -39,6 +39,7 @@ defmodule MessagingSpike.MixProject do
       {:telemetry_poller, "~> 1.0"},
       {:jason, "~> 1.2"},
       {:plug_cowboy, "~> 2.5"},
+      {:redix, "~> 1.1"},
       {:amqp, "~> 3.1"}
     ]
   end
