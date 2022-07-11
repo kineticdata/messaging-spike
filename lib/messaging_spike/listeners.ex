@@ -2,8 +2,14 @@ defmodule MessagingSpike.Listeners do
   alias MessagingSpike.Brokers.Rabbit
   alias MessagingSpike.Settings
   alias MessagingSpike.Brokers.Nats
+  alias MessagingSpike.Brokers.Redis
 
   def init do
+
+    #---------------------------------------------------------------
+    # Rabbit
+    #---------------------------------------------------------------
+
     Rabbit.declare("size", false)
 
     Rabbit.subscribe("size", fn message, meta ->
@@ -24,6 +30,11 @@ defmodule MessagingSpike.Listeners do
       Settings.update(:erlang.binary_to_term(message))
     end)
 
+
+    #---------------------------------------------------------------
+    # Nats
+    #---------------------------------------------------------------
+
     Nats.subscribe(
       "check_token",
       fn message, reply_to ->
@@ -36,6 +47,11 @@ defmodule MessagingSpike.Listeners do
     Nats.subscribe("settings", fn message ->
       Settings.update(:erlang.binary_to_term(message))
     end)
+
+
+    #---------------------------------------------------------------
+    # Kafka
+    #---------------------------------------------------------------
 
     spawn(fn ->
       KafkaEx.create_topics([
@@ -54,11 +70,22 @@ defmodule MessagingSpike.Listeners do
         }
       ] = KafkaEx.latest_offset("settings", 0)
 
-      KafkaEx.stream("settings", 0, offset: latest_offset - 1)
+      KafkaEx.stream("settings", 0, offset: max(latest_offset - 1, 0))
       |> Stream.map(&Map.get(&1, :value))
       |> Stream.map(&:erlang.binary_to_term/1)
       |> Stream.each(&Settings.update(&1))
       |> Stream.run()
     end)
+
+
+    #---------------------------------------------------------------
+    # Redis
+    #---------------------------------------------------------------
+
+    Redis.subscribe("settings", fn message ->
+      IO.inspect(message)
+      Settings.update(:erlang.binary_to_term(message))
+    end)
+
   end
 end

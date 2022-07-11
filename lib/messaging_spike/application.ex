@@ -15,6 +15,7 @@ defmodule MessagingSpike.Application do
       MessagingSpike.Brokers.Rabbit,
       MessagingSpike.Settings,
       MessagingSpike.Brokers.Nats,
+      MessagingSpike.Brokers.Redis,
       # Start the Endpoint (http/https)
       MessagingSpikeWeb.Endpoint
       # Start a worker by calling: MessagingSpike.Worker.start_link(arg)
