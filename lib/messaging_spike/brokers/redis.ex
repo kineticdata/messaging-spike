@@ -14,12 +14,12 @@ defmodule MessagingSpike.Brokers.Redis do
     GenServer.call(__MODULE__, {:rpc_publish, topic, payload, correlation_id, self()})
   end
 
-  def publish(topic, payload, correlation_id \\ nil) do
-    GenServer.call(__MODULE__, {:publish, topic, payload, correlation_id})
+  def publish(topic, payload) do
+    GenServer.call(__MODULE__, {:publish, topic, payload})
   end
 
-  def subscribe(topic) do
-    GenServer.call(__MODULE__, {:subscribe, topic})
+  def subscribe(topic, fun, options \\ []) do
+    GenServer.call(__MODULE__, {:subscribe, topic, fun, options})
   end
 
   def unsubscribe(topic) do
@@ -38,17 +38,17 @@ defmodule MessagingSpike.Brokers.Redis do
     {:ok, conn} = Redix.start_link("redis://#{host}:#{port}")
     {:ok, pubsub} = Redix.PubSub.start_link("redis://#{host}:#{port}")
 
-    {:ok, {conn, pubsub, %{}}}
+    {:ok, {conn, pubsub, %{}, %{}}}
   end
 
-  def handle_call(command, _from, state = {conn, pubsub, pid_map}) do
+  def handle_call(command, _from, state = {conn, pubsub, pid_map, fun_map}) do
     case command do
       {:unsubscribe, topic} ->
         Redix.PubSub.unsubscribe(pubsub, topic, self())
         {:reply, :ok, state}
 
-      {:publish, topic, payload, correlation_id} ->
-        Redix.command!(conn, ["PUBLISH", topic, "#{payload}, correlation_id: #{correlation_id}"])
+      {:publish, topic, payload} ->
+        Redix.command!(conn, ["PUBLISH", topic, payload])
         {:reply, :ok, state}
 
       {:rpc_publish, topic, payload, correlation_id, pid} ->
@@ -69,24 +69,26 @@ defmodule MessagingSpike.Brokers.Redis do
         send(pid, payload)
         {:noreply, state}
 
-      {:subscribe, topic} ->
-        {:ok, _} = Redix.PubSub.subscribe(pubsub, topic, self())
-        {:reply, :ok, state}
+      {:subscribe, topic, fun, _options} ->
+        {:ok, ref} = Redix.PubSub.subscribe(pubsub, topic, self())
+        {:reply, :ok, {conn, pubsub, pid_map, Map.put(fun_map, ref, fun)}}
     end
   end
 
   def handle_info({:redix_pubsub, _, _, :subscribed, %{channel: channel}}, state) do
-    Logger.info("subscribed to #{channel}")
+    Logger.info("Redis subscribed to #{channel}")
     {:noreply, state}
   end
 
-  def handle_info({:redix_pubsub, _, _, :message, %{channel: channel, payload: payload}}, state) do
-    Logger.info("received message on channel #{channel}: #{payload}")
+  def handle_info({:redix_pubsub, _, ref, :message, %{channel: channel, payload: payload}}, state) do
+    Logger.info("Redis received message on channel #{channel}: #{payload}")
+    {_conn, _pubsub, _pid_map, fun_map} = state
+    Map.get(fun_map, ref).(payload)
     {:noreply, state}
   end
 
   def handle_info({:redix_pubsub, _pid, _ref, :unsubscribed, %{channel: channel}}, state) do
-    Logger.info("unsubscribed from #{channel}")
+    Logger.info("Redis unsubscribed from #{channel}")
     {:noreply, state}
   end
 end

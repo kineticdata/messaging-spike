@@ -4,6 +4,7 @@ defmodule MessagingSpikeWeb.MessageController do
   alias MessagingSpike.Brokers.Rabbit
   alias MessagingSpike.Settings
   alias MessagingSpike.Brokers.Nats
+  alias MessagingSpike.Brokers.Redis
 
   def blocking_request(conn, params = %{"topic" => topic}) do
     Rabbit.publish(topic, :erlang.term_to_binary(params), true)
@@ -45,6 +46,12 @@ defmodule MessagingSpikeWeb.MessageController do
     Plug.Conn.send_resp(conn, 200, "success")
   end
 
+  def update_settings_redis(conn, params) do
+    Redis.publish("settings", :erlang.term_to_binary(params))
+    Plug.Conn.send_resp(conn, 200, "success")
+  end
+
+  @spec get_settings(Plug.Conn.t(), any) :: Plug.Conn.t()
   def get_settings(conn, _params) do
     {:ok, settings} = Settings.get()
     {:ok, response_body} = Jason.encode(settings)

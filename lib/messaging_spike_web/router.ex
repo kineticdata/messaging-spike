@@ -14,6 +14,7 @@ defmodule MessagingSpikeWeb.Router do
     put("/settings", MessageController, :update_settings)
     put("/settings-nats", MessageController, :update_settings_nats)
     put("/settings-kafka", MessageController, :update_settings_kafka)
+    put("/settings-redis", MessageController, :update_settings_redis)
     # get the settings map
     get("/settings", MessageController, :get_settings)
     # TODO: "/publish/:topic"
