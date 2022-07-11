@@ -38,6 +38,16 @@ defmodule MessagingSpike.Listeners do
     end)
 
     spawn(fn ->
+      KafkaEx.create_topics([
+        %{
+          topic: "settings",
+          num_partitions: 1,
+          replication_factor: 1,
+          replica_assignment: [],
+          config_entries: []
+        }
+      ])
+
       [
         %KafkaEx.Protocol.Offset.Response{
           partition_offsets: [%{error_code: :no_error, offset: [latest_offset], partition: 0}]
