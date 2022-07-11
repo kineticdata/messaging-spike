@@ -11,8 +11,8 @@ defmodule MessagingSpike.Brokers.Nats do
     GenServer.call(__MODULE__, {:get_conn})
   end
 
-  def subscribe(topic, fun) do
-    GenServer.cast(__MODULE__, {:subscribe, topic, fun})
+  def subscribe(topic, fun, options \\ []) do
+    GenServer.cast(__MODULE__, {:subscribe, topic, fun, options})
   end
 
   def publish(topic, message) do
@@ -20,7 +20,8 @@ defmodule MessagingSpike.Brokers.Nats do
   end
 
   def request(topic, message) do
-    Gnat.request(get_conn(), topic, message)
+    {:ok, result} = Gnat.request(get_conn(), topic, message)
+    Map.get(result, :body)
   end
 
   # Callbacks
@@ -50,8 +51,8 @@ defmodule MessagingSpike.Brokers.Nats do
         Gnat.pub(conn, topic, message)
         {:noreply, state}
 
-      {:subscribe, topic, fun} ->
-        {:ok, sid} = Gnat.sub(conn, self(), topic)
+      {:subscribe, topic, fun, options} ->
+        {:ok, sid} = Gnat.sub(conn, self(), topic, options)
         {:noreply, {conn, Map.put(funs, sid, fun)}}
     end
   end

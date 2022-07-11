@@ -20,6 +20,7 @@ defmodule MessagingSpikeWeb.Router do
     # TODO: "/subscribe/:topic"
     # TODO: "/unsubscribe/:topic"
     get("/size/:input", MessageController, :size)
+    get("/check-token/:token", MessageController, :check_token)
     post("/add/:queue", MessageController, :add)
     get("/dequeue/:topic", MessageController, :dequeue)
   end

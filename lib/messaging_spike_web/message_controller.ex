@@ -25,6 +25,11 @@ defmodule MessagingSpikeWeb.MessageController do
     Plug.Conn.send_resp(conn, 200, result)
   end
 
+  def check_token(conn, params) do
+    result = Nats.request("check_token", Map.get(params, "token"))
+    Plug.Conn.send_resp(conn, 200, result)
+  end
+
   def update_settings(conn, params) do
     Rabbit.update_settings(params)
     Plug.Conn.send_resp(conn, 200, "success")
