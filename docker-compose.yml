@@ -1,4 +1,4 @@
-version: '2'
+version: '3.8'
 
 services:
   rabbit-1:
@@ -41,26 +41,32 @@ services:
       - $PWD/config/containers/rabbit/rabbit-3/rabbitmq.conf:/config/rabbitmq.conf
       - $PWD/config/containers/rabbit/rabbit-3/enabled_plugins:/etc/rabbitmq/enabled_plugins
   nats-1:
-    image: nats:2.7.4
+    image: nats:alpine3.15
     container_name: spike-nats-1
     ports:
       - "4222:4222"
       - "8222:8222"
-    command: --config nats-server.conf --jetstream --name alpha --routes nats://spike-nats-1:6222 --cluster nats://0.0.0.0:6222
+    volumes:
+      - $PWD/config/containers/nats/nats-1/nats-server.conf:/etc/nats/nats-server.conf
+      - $PWD/data/containers/nats/nats-1:/data/jetstream
   nats-2:
-    image: nats:2.7.4
+    image: nats:alpine3.15
     container_name: spike-nats-2
     ports:
       - "4223:4222"
       - "8223:8222"
-    command: --config nats-server.conf --jetstream --name beta --routes nats://spike-nats-1:6222 --cluster nats://0.0.0.0:6222
+    volumes:
+      - $PWD/config/containers/nats/nats-2/nats-server.conf:/etc/nats/nats-server.conf
+      - $PWD/data/containers/nats/nats-2:/data/jetstream
   nats-3:
-    image: nats:2.7.4
+    image: nats:alpine3.15
     container_name: spike-nats-3
     ports:
       - "4224:4222"
       - "8224:8222"
-    command: --config nats-server.conf --jetstream --name gamma --routes nats://spike-nats-1:6222 --cluster nats://0.0.0.0:6222
+    volumes:
+      - $PWD/config/containers/nats/nats-3/nats-server.conf:/etc/nats/nats-server.conf
+      - $PWD/data/containers/nats/nats-3:/data/jetstream
   kafka-1:
     image: confluentinc/cp-kafka:7.0.1
     container_name: spike-kafka-1
@@ -88,7 +94,7 @@ services:
     ports:
       - "2181:2181"
   redis:
-      image: "redis:7.0.2"
-      container_name: spike-redis-1
-      ports:
-        - "6379:6379"
+    image: "redis:7.0.2"
+    container_name: spike-redis-1
+    ports:
+      - "6379:6379"

@@ -23,3 +23,5 @@ erl_crash.dump
 messaging_spike-*.tar
 
 sample.http
+
+data/
