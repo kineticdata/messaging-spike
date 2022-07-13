@@ -30,7 +30,9 @@ defmodule MessagingSpike.Brokers.Nats do
     {:ok,
      [
        host: host,
-       port: port
+       port: port,
+       username: _username,
+       password: _password
      ]} = Application.fetch_env(:messaging_spike, __MODULE__)
 
     {:ok, conn} = Gnat.start_link(%{host: host, port: port})
