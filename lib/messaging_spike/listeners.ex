@@ -11,6 +11,9 @@ defmodule MessagingSpike.Listeners do
 
     Rabbit.declare("size", false)
 
+    Rabbit.declare("heartbeat", true)
+    Rabbit.subscribe("heartbeat", fn _, _ -> nil end)
+
     Rabbit.subscribe("size", fn message, meta ->
       IO.puts("executing RPC via rabbit")
       correlation_id = Map.get(meta, :correlation_id)

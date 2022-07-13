@@ -16,6 +16,7 @@ defmodule MessagingSpike.Application do
       MessagingSpike.Settings,
       MessagingSpike.Brokers.Nats,
       MessagingSpike.Brokers.Redis,
+      MessagingSpike.Scheduler,
       # Start the Endpoint (http/https)
       MessagingSpikeWeb.Endpoint
       # Start a worker by calling: MessagingSpike.Worker.start_link(arg)
@@ -27,6 +28,7 @@ defmodule MessagingSpike.Application do
     opts = [strategy: :one_for_one, name: MessagingSpike.Supervisor]
     result = Supervisor.start_link(children, opts)
     MessagingSpike.Listeners.init()
+    MessagingSpike.Scheduler.go()
     result
   end
 

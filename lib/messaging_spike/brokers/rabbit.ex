@@ -17,7 +17,7 @@ defmodule MessagingSpike.Brokers.Rabbit do
     end
   end
 
-  def publish(topic, payload, correlation_id \\ nil) do
+  def publish(topic, payload, correlation_id \\ :undefined) do
     GenServer.call(__MODULE__, {:publish, topic, payload, correlation_id})
   end
 
