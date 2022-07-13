@@ -23,3 +23,12 @@ erl_crash.dump
 messaging_spike-*.tar
 
 sample.http
+
+# IDE related ignores.
+.idea
+*.iml
+.elixir_ls
+
+# Docker volume ignores.
+config/containers/zookeeper/data/version-*
+config/containers/zookeeper/log/version-*

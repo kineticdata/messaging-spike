@@ -1,0 +1,37 @@
+GET http://localhost:4000/api/size/foobar
+###
+
+GET http://localhost:4000/api/check-token/loremipsumdolor
+###
+
+GET http://localhost:4000/api/settings
+###
+
+GET http://localhost:4001/api/settings
+
+###
+GET http://localhost:4002/api/settings
+###
+
+PUT http://localhost:4000/api/settings
+Content-Type: application/json
+
+{"name": "Rabbit"}
+###
+
+PUT http://localhost:4000/api/settings-nats
+Content-Type: application/json
+
+{"name": "Nats"}
+###
+
+PUT http://localhost:4000/api/settings-kafka
+Content-Type: application/json
+
+{"name": "Kafka"}
+###
+
+PUT http://localhost:4000/api/settings-redis
+Content-Type: application/json
+
+{"name": "Redis"}
