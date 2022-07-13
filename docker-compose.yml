@@ -14,6 +14,7 @@ services:
     volumes:
       - $PWD/config/containers/rabbit/rabbit-1/rabbitmq.conf:/config/rabbitmq.conf
       - $PWD/config/containers/rabbit/rabbit-1/enabled_plugins:/etc/rabbitmq/enabled_plugins
+      - $PWD/config/containers/rabbit/.erlang.cookie:/var/lib/rabbitmq/.erlang.cookie
   rabbit-2:
     image: rabbitmq:3.9.13-management
     container_name: spike-rabbit-2
@@ -27,6 +28,7 @@ services:
     volumes:
       - $PWD/config/containers/rabbit/rabbit-2/rabbitmq.conf:/config/rabbitmq.conf
       - $PWD/config/containers/rabbit/rabbit-2/enabled_plugins:/etc/rabbitmq/enabled_plugins
+      - $PWD/config/containers/rabbit/.erlang.cookie:/var/lib/rabbitmq/.erlang.cookie
   rabbit-3:
     image: rabbitmq:3.9.13-management
     container_name: spike-rabbit-3
@@ -40,6 +42,7 @@ services:
     volumes:
       - $PWD/config/containers/rabbit/rabbit-3/rabbitmq.conf:/config/rabbitmq.conf
       - $PWD/config/containers/rabbit/rabbit-3/enabled_plugins:/etc/rabbitmq/enabled_plugins
+      - $PWD/config/containers/rabbit/.erlang.cookie:/var/lib/rabbitmq/.erlang.cookie
   nats-1:
     image: nats:2.7.4
     container_name: spike-nats-1
@@ -87,8 +90,20 @@ services:
       ZOOKEEPER_TICK_TIME: 2000
     ports:
       - "2181:2181"
+    volumes:
+    - $PWD/config/containers/zookeeper/log:/var/lib/zookeeper/log
+    - $PWD/config/containers/zookeeper/data:/var/lib/zookeeper/data
   redis:
       image: "redis:7.0.2"
       container_name: spike-redis-1
       ports:
         - "6379:6379"
+#  messaging-spike:
+#    image: kineticdata/messaging-spike:latest
+#    container_name: messaging-spike
+#    ports:
+#      - "4000:4000"
+#    depends_on:
+#      - kafka-1
+#      - rabbit-1
+#      - nats-1
