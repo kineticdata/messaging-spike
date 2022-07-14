@@ -55,7 +55,7 @@ defmodule MessagingSpike.Listeners do
 
     spawn(fn ->
       KafkaEx.create_topics([
-        %{
+        %Elixir.KafkaEx.Protocol.CreateTopics.TopicRequest{
           topic: "settings",
           num_partitions: 1,
           replication_factor: 1,
