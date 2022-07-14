@@ -62,11 +62,6 @@ config :messaging_spike, MessagingSpike.Brokers.Nats,
   username: "_",
   password: "_"
 
-config :kafka_ex,
-  brokers: [
-    {"localhost", 9092}
-  ]
-
 config :messaging_spike, MessagingSpike.Brokers.Redis,
   host: "localhost",
   port: 6379,
