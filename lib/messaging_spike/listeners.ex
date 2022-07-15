@@ -55,7 +55,7 @@ defmodule MessagingSpike.Listeners do
 
     spawn(fn ->
       KafkaEx.create_topics([
-        %Elixir.KafkaEx.Protocol.CreateTopics.TopicRequest{
+        %KafkaEx.Protocol.CreateTopics.TopicRequest{
           topic: "settings",
           num_partitions: 1,
           replication_factor: 1,
@@ -82,7 +82,6 @@ defmodule MessagingSpike.Listeners do
     # ---------------------------------------------------------------
 
     Redis.subscribe("settings", fn message ->
-      IO.inspect(message)
       Settings.update(:erlang.binary_to_term(message))
     end)
   end
