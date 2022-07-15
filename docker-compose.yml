@@ -67,6 +67,7 @@ services:
   kafka-1:
     image: confluentinc/cp-kafka:7.0.1
     container_name: spike-kafka-1
+    hostname: spike-kafka-1
     ports:
       # To learn about configuring Kafka for access across networks see
       # https://www.confluent.io/blog/kafka-client-cannot-connect-to-broker-on-aws-on-docker-etc/
@@ -82,6 +83,11 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
       KAFKA_HEAP_OPTS: -Xmx256M -Xms256M
+    healthcheck:
+      test: ["CMD", "nc", "-z", "-v", "localhost", "9092"]
+      interval: 30s
+      timeout: 10s
+      retries: 4
   zookeeper:
     image: confluentinc/cp-zookeeper:7.0.1
     container_name: spike-zookeeper
@@ -98,12 +104,12 @@ services:
       container_name: spike-redis-1
       ports:
         - "6379:6379"
-#  messaging-spike:
-#    image: kineticdata/messaging-spike:latest
-#    container_name: messaging-spike
-#    ports:
-#      - "4000:4000"
-#    depends_on:
-#      - kafka-1
-#      - rabbit-1
-#      - nats-1
+  messaging-spike:
+    image: kineticdata/messaging-spike:latest
+    container_name: messaging-spike
+    ports:
+      - "4000:4000"
+    depends_on:
+      - kafka-1
+      - rabbit-1
+      - nats-1
