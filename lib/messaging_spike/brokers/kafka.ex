@@ -58,13 +58,21 @@ defmodule MessagingSpike.Brokers.Kafka do
     {:noreply, {nil}}
   end
 
+  def kafka_port do
+    case Integer.parse(System.get_env("KAFKA_PORT")) do
+      {portnum, _} -> portnum
+      :error -> 9092
+    end
+  end
+
   defp connect() do
+    host = System.get_env("KAFKA_HOST") || "localhost"
+    port = kafka_port()
+
+    IO.puts("The host is #{host}")
+
     {:ok,
      [
-       host: host,
-       port: port,
-       username: _username,
-       password: _password,
        consumer_group: consumer_group
      ]} = Application.fetch_env(:messaging_spike, __MODULE__)
 

@@ -49,25 +49,8 @@ config :logger, level: :info
 #
 # Check `Plug.SSL` for all available options in `force_ssl`.
 
-config :messaging_spike, MessagingSpike.Brokers.Rabbit,
-  host: System.get_env("RABBIT_HOST"),
-  port: System.get_env("RABBIT_PORT"),
-  username: System.get_env("RABBIT_USER"),
-  password: System.get_env("RABBIT_PASS")
+config :kafka_ex,
+  disable_default_worker: true
 
-config :messaging_spike, MessagingSpike.Brokers.Nats,
-  host: System.get_env("NATS_HOST"),
-  port: System.get_env("NATS_PORT"),
-  username: System.get_env("NATS_USER"),
-  password: System.get_env("NATS_PASS")
-
-# config :kafka_ex,
-#   brokers: [
-#     {"#{System.get_env("KAFKA_HOST")}:#{System.get_env("KAFKA_PORT")}"}
-#   ]
-
-config :messaging_spike, MessagingSpike.Brokers.Redis,
-  host: System.get_env("REDIS_HOST"),
-  port: System.get_env("REDIS_PORT"),
-  username: System.get_env("REDIS_USER"),
-  password: System.get_env("REDIS_PASS")
+config :messaging_spike, MessagingSpike.Brokers.Kafka,
+  consumer_group: "test_group"

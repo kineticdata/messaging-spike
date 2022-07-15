@@ -42,7 +42,7 @@ defmodule MessagingSpike.MixProject do
       {:amqp, "~> 3.1"},
       {:gnat, "~> 1.5"},
       {:jetstream, git: "https://github.com/mmmries/jetstream.git", branch: "master"},
-      # {:kafka_ex, "~> 0.12.1"},
+      {:kafka_ex, "~> 0.12.1"},
       {:redix, "~> 1.1"},
 
       # Development.

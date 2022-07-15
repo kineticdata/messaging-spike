@@ -54,26 +54,4 @@ config :kafka_ex,
   disable_default_worker: true
 
 config :messaging_spike, MessagingSpike.Brokers.Kafka,
-  host: "localhost",
-  port: 9092,
-  username: "-",
-  password: "-",
   consumer_group: "test_group"
-
-config :messaging_spike, MessagingSpike.Brokers.Rabbit,
-  host: "localhost",
-  port: 5672,
-  username: "guest",
-  password: "guest"
-
-config :messaging_spike, MessagingSpike.Brokers.Nats,
-  host: "localhost",
-  port: 4222,
-  username: "_",
-  password: "_"
-
-config :messaging_spike, MessagingSpike.Brokers.Redis,
-  host: "localhost",
-  port: 6379,
-  username: "_",
-  password: "_"
