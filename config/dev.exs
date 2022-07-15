@@ -50,6 +50,16 @@ config :phoenix, :stacktrace_depth, 20
 # Initialize plugs at runtime for faster development compilation
 config :phoenix, :plug_init_mode, :runtime
 
+config :kafka_ex,
+  disable_default_worker: true
+
+config :messaging_spike, MessagingSpike.Brokers.Kafka,
+  host: "localhost",
+  port: 9092,
+  username: "-",
+  password: "-",
+  consumer_group: "test_group"
+
 config :messaging_spike, MessagingSpike.Brokers.Rabbit,
   host: "localhost",
   port: 5672,

@@ -62,7 +62,7 @@ defmodule MessagingSpike.Scheduler do
   defp create_workers(rate) do
     Logger.debug("Starting workers with rate of #{rate} messages/minute")
 
-    Enum.map([:nats, :rabbit, :redis], fn broker_type ->
+    Enum.map([:kafka, :nats, :rabbit, :redis], fn broker_type ->
       {:ok, pid} = MessagingSpike.MessageWorker.start({broker_type, "heartbeat", rate})
       pid
     end)
