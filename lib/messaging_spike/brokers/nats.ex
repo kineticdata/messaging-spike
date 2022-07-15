@@ -1,5 +1,6 @@
 defmodule MessagingSpike.Brokers.Nats do
   use GenServer
+  require Logger
 
   def start_link(init_arg) do
     GenServer.start_link(__MODULE__, init_arg, name: __MODULE__)
@@ -27,6 +28,59 @@ defmodule MessagingSpike.Brokers.Nats do
   # Callbacks
 
   def init(_init_arg) do
+    Process.flag(:trap_exit, true)
+    {:ok, connect()}
+  end
+
+  def handle_call(_, _, state = {nil, _}) do
+    {:reply, {:error, "Nats service is unavailable"}, state}
+  end
+
+  def handle_call({:get_conn}, _from, state = {conn, _funs}) do
+    {:reply, conn, state}
+  end
+
+  def handle_cast({:retry_connection}, _state) do
+    {:noreply, connect()}
+  end
+
+  def handle_cast(_, state = {nil, _}) do
+    {:noreply, state}
+  end
+
+  def handle_cast({:publish, topic, message}, state = {conn, _funs}) do
+    Gnat.pub(conn, topic, message)
+    {:noreply, state}
+  end
+
+  def handle_cast({:subscribe, topic, fun, options}, {conn, funs}) do
+    {:ok, sid} = Gnat.sub(conn, self(), topic, options)
+    {:noreply, {conn, Map.put(funs, sid, fun)}}
+  end
+
+  def handle_info({:msg, %{body: body, sid: sid, reply_to: reply_to}}, state = {_conn, funs}) do
+    fun = Map.get(funs, sid)
+
+    if reply_to do
+      fun.(body, reply_to)
+    else
+      fun.(body)
+    end
+
+    {:noreply, state}
+  end
+
+  def handle_info({:EXIT, conn, "connection closed"}, {conn, _}) do
+    :timer.apply_after(5000, GenServer, :cast, [__MODULE__, {:retry_connection}])
+    {:noreply, {nil, %{}}}
+  end
+
+  def handle_info({:EXIT, _, :econnrefused}, _) do
+    :timer.apply_after(5000, GenServer, :cast, [__MODULE__, {:retry_connection}])
+    {:noreply, {nil, %{}}}
+  end
+
+  defp connect do
     {:ok,
      [
        host: host,
@@ -35,42 +89,12 @@ defmodule MessagingSpike.Brokers.Nats do
        password: _password
      ]} = Application.fetch_env(:messaging_spike, __MODULE__)
 
-    {:ok, conn} = Gnat.start_link(%{host: host, port: port})
-
-    {:ok, {conn, %{}}}
-  end
-
-  def handle_call(request, _from, state = {conn, _funs}) do
-    case request do
-      {:get_conn} ->
-        {:reply, conn, state}
-    end
-  end
-
-  def handle_cast(request, state = {conn, funs}) do
-    case request do
-      {:publish, topic, message} ->
-        Gnat.pub(conn, topic, message)
-        {:noreply, state}
-
-      {:subscribe, topic, fun, options} ->
-        {:ok, sid} = Gnat.sub(conn, self(), topic, options)
-        {:noreply, {conn, Map.put(funs, sid, fun)}}
-    end
-  end
-
-  def handle_info(info, state = {_conn, funs}) do
-    case info do
-      {:msg, %{body: body, sid: sid, reply_to: reply_to}} ->
-        fun = Map.get(funs, sid)
-
-        if reply_to do
-          fun.(body, reply_to)
-        else
-          fun.(body)
-        end
-
-        {:noreply, state}
+    with {:ok, conn} <- Gnat.start_link(%{host: host, port: port}) do
+      {conn, %{}}
+    else
+      e ->
+        Logger.error("Error connecting to nats #{inspect(e)}")
+        {nil, %{}}
     end
   end
 end

@@ -8,18 +8,12 @@ defmodule MessagingSpike.Brokers.Redis do
     GenServer.start_link(__MODULE__, init_arg, name: __MODULE__)
   end
 
-  def rpc(topic, payload) do
-    correlation_id = :erlang.unique_integer() |> :erlang.integer_to_binary() |> Base.encode64()
-
-    GenServer.call(__MODULE__, {:rpc_publish, topic, payload, correlation_id, self()})
-  end
-
   def publish(topic, payload) do
     GenServer.call(__MODULE__, {:publish, topic, payload})
   end
 
-  def subscribe(topic, fun, options \\ []) do
-    GenServer.call(__MODULE__, {:subscribe, topic, fun, options})
+  def subscribe(topic, fun) do
+    GenServer.call(__MODULE__, {:subscribe, topic, fun})
   end
 
   def unsubscribe(topic) do
@@ -43,38 +37,23 @@ defmodule MessagingSpike.Brokers.Redis do
     {:ok, {conn, pubsub, %{}, %{}}}
   end
 
-  def handle_call(command, _from, state = {conn, pubsub, pid_map, fun_map}) do
-    case command do
-      {:unsubscribe, topic} ->
-        Redix.PubSub.unsubscribe(pubsub, topic, self())
-        {:reply, :ok, state}
+  def handle_call({:unsubscribe, topic}, _from, state = {_, pubsub, _, _}) do
+    result = Redix.PubSub.unsubscribe(pubsub, topic, self())
+    {:reply, result, state}
+  end
 
-      {:publish, topic, payload} ->
-        Redix.command!(conn, ["PUBLISH", topic, payload])
-        {:reply, :ok, state}
+  def handle_call({:publish, topic, payload}, _from, state = {conn, _, _, _}) do
+    result = Redix.command(conn, ["PUBLISH", topic, payload])
+    {:reply, result, state}
+  end
 
-      {:rpc_publish, topic, payload, correlation_id, pid} ->
-        Logger.info(
-          "publishing to #{topic}, expecting reply on reply_to queue, pid map #{inspect(pid_map)}"
-        )
-
-        Redix.command!(conn, [
-          "PUBLISH",
-          topic,
-          "#{payload}, correlation_id: #{correlation_id}, reply_to: reply_queue"
-        ])
-
-        {:reply, :ok, {conn, pubsub, Map.put(pid_map, correlation_id, pid)}}
-
-      {:rpc_reply, correlation_id, payload} ->
-        pid = Map.get(pid_map, correlation_id)
-        send(pid, payload)
-        {:noreply, state}
-
-      {:subscribe, topic, fun, _options} ->
-        {:ok, ref} = Redix.PubSub.subscribe(pubsub, topic, self())
-        {:reply, :ok, {conn, pubsub, pid_map, Map.put(fun_map, ref, fun)}}
-    end
+  def handle_call(
+        {:subscribe, topic, fun},
+        _from,
+        {conn, pubsub, pid_map, fun_map}
+      ) do
+    {:ok, ref} = Redix.PubSub.subscribe(pubsub, topic, self())
+    {:reply, :ok, {conn, pubsub, pid_map, Map.put(fun_map, ref, fun)}}
   end
 
   def handle_info({:redix_pubsub, _, _, :subscribed, %{channel: channel}}, state) do

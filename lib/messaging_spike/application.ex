@@ -12,10 +12,11 @@ defmodule MessagingSpike.Application do
       MessagingSpikeWeb.Telemetry,
       # Start the PubSub system
       {Phoenix.PubSub, name: MessagingSpike.PubSub},
-      MessagingSpike.Brokers.Rabbit,
-      MessagingSpike.Settings,
+      MessagingSpike.Brokers.Kafka,
       MessagingSpike.Brokers.Nats,
+      MessagingSpike.Brokers.Rabbit,
       MessagingSpike.Brokers.Redis,
+      MessagingSpike.Settings,
       MessagingSpike.Scheduler,
       # Start the Endpoint (http/https)
       MessagingSpikeWeb.Endpoint
@@ -27,7 +28,6 @@ defmodule MessagingSpike.Application do
     # for other strategies and supported options
     opts = [strategy: :one_for_one, name: MessagingSpike.Supervisor]
     result = Supervisor.start_link(children, opts)
-    MessagingSpike.Listeners.init()
     MessagingSpike.Scheduler.go()
     result
   end

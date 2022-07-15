@@ -6,11 +6,6 @@ defmodule MessagingSpikeWeb.MessageController do
   alias MessagingSpike.Brokers.Nats
   alias MessagingSpike.Brokers.Redis
 
-  def blocking_request(conn, params = %{"topic" => topic}) do
-    Rabbit.publish(topic, :erlang.term_to_binary(params), true)
-    Plug.Conn.send_resp(conn, 200, Jason.encode!(params))
-  end
-
   def dequeue(conn, _params = %{"topic" => topic}) do
     {:ok, payload, _meta} = Rabbit.dequeue(topic)
     Plug.Conn.send_resp(conn, 200, Jason.encode!(payload))
@@ -32,7 +27,7 @@ defmodule MessagingSpikeWeb.MessageController do
   end
 
   def update_settings(conn, params) do
-    Rabbit.update_settings(params)
+    Rabbit.publish("broadcast", params)
     Plug.Conn.send_resp(conn, 200, "success")
   end
 
@@ -41,10 +36,10 @@ defmodule MessagingSpikeWeb.MessageController do
     Plug.Conn.send_resp(conn, 200, "success")
   end
 
-  def update_settings_kafka(conn, params) do
-    KafkaEx.produce("settings", 0, :erlang.term_to_binary(params))
-    Plug.Conn.send_resp(conn, 200, "success")
-  end
+  # def update_settings_kafka(conn, params) do
+  #   KafkaEx.produce("settings", 0, :erlang.term_to_binary(params))
+  #   Plug.Conn.send_resp(conn, 200, "success")
+  # end
 
   def update_settings_redis(conn, params) do
     Redis.publish("settings", :erlang.term_to_binary(params))

@@ -1,6 +1,7 @@
 defmodule MessagingSpike.MessageWorker do
   use GenServer
 
+  alias MessagingSpike.Brokers.Kafka
   alias MessagingSpike.Brokers.Nats
   alias MessagingSpike.Brokers.Rabbit
   alias MessagingSpike.Brokers.Redis
@@ -16,6 +17,7 @@ defmodule MessagingSpike.MessageWorker do
   def init({broker_type, topic, rate}) do
     module =
       case broker_type do
+        :kafka -> Kafka
         :nats -> Nats
         :rabbit -> Rabbit
         :redis -> Redis
