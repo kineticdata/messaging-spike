@@ -59,9 +59,11 @@ defmodule MessagingSpike.Brokers.Kafka do
   end
 
   def kafka_port do
-    case Integer.parse(System.get_env("KAFKA_PORT")) do
-      {portnum, _} -> portnum
-      :error -> 9092
+    env_port = System.get_env("KAFKA_PORT")
+    if is_nil(env_port) do
+      9092
+    else
+      String.to_integer(env_port)
     end
   end
 

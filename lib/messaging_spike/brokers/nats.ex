@@ -81,9 +81,11 @@ defmodule MessagingSpike.Brokers.Nats do
   end
 
   def nats_port do
-    case Integer.parse(System.get_env("NATS_PORT")) do
-      {portnum, _} -> portnum
-      :error -> 4222
+    env_port = System.get_env("NATS_PORT")
+    if is_nil(env_port) do
+      9092
+    else
+      String.to_integer(env_port)
     end
   end
 
