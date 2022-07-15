@@ -14,7 +14,7 @@ defmodule MessagingSpike.Application do
       {Phoenix.PubSub, name: MessagingSpike.PubSub},
       MessagingSpike.Brokers.Nats,
       MessagingSpike.Brokers.Rabbit,
-      # MessagingSpike.Brokers.Redis,
+      MessagingSpike.Brokers.Redis,
       MessagingSpike.Settings,
       MessagingSpike.Scheduler,
       # Start the Endpoint (http/https)
