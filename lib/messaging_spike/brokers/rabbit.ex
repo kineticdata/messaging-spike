@@ -118,13 +118,8 @@ defmodule MessagingSpike.Brokers.Rabbit do
   end
 
   defp connect do
-    {:ok,
-     [
-       host: host,
-       port: port,
-       username: _username,
-       password: _password
-     ]} = Application.fetch_env(:messaging_spike, __MODULE__)
+    host = System.get_env("RABBIT_HOST") || "localhost"
+    port = System.get_env("RABBIT_PORT") || 5672
 
     with {:ok, conn} <- AMQP.Connection.open("amqp://#{host}:#{port}"),
          {:ok, chan} <- AMQP.Channel.open(conn),

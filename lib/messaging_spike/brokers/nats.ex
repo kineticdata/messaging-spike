@@ -80,14 +80,16 @@ defmodule MessagingSpike.Brokers.Nats do
     {:noreply, {nil, %{}}}
   end
 
+  def nats_port do
+    case Integer.parse(System.get_env("NATS_PORT")) do
+      {portnum, _} -> portnum
+      :error -> 4222
+    end
+  end
+
   defp connect do
-    {:ok,
-     [
-       host: host,
-       port: port,
-       username: _username,
-       password: _password
-     ]} = Application.fetch_env(:messaging_spike, __MODULE__)
+    host = System.get_env("NATS_HOST") || "localhost"
+    port = nats_port()
 
     with {:ok, conn} <- Gnat.start_link(%{host: host, port: port}) do
       {conn, %{}}

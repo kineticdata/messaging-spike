@@ -23,13 +23,10 @@ defmodule MessagingSpike.Brokers.Redis do
   # Callbacks
 
   def init(_init_arg) do
-    {:ok,
-     [
-       host: host,
-       port: port,
-       username: _username,
-       password: _password
-     ]} = Application.fetch_env(:messaging_spike, __MODULE__)
+    host = System.get_env("REDIS_HOST") || "localhost"
+    port = System.get_env("REDIS_PORT") || 6379
+    # username = System.get_env("REDIS_USER") || "_"
+    # password = System.get_env("REDIS_PASS") || "_"
 
     {:ok, conn} = Redix.start_link("redis://#{host}:#{port}")
     {:ok, pubsub} = Redix.PubSub.start_link("redis://#{host}:#{port}")

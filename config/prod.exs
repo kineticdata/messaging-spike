@@ -61,10 +61,10 @@ config :messaging_spike, MessagingSpike.Brokers.Nats,
   username: System.get_env("NATS_USER"),
   password: System.get_env("NATS_PASS")
 
-config :kafka_ex,
-  brokers: [
-    {System.get_env("KAFKA_HOST"), System.get_env("KAFKA_PORT")}
-  ]
+# config :kafka_ex,
+#   brokers: [
+#     {"#{System.get_env("KAFKA_HOST")}:#{System.get_env("KAFKA_PORT")}"}
+#   ]
 
 config :messaging_spike, MessagingSpike.Brokers.Redis,
   host: System.get_env("REDIS_HOST"),
