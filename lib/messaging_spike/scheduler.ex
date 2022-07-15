@@ -22,7 +22,7 @@ defmodule MessagingSpike.Scheduler do
 
     unix_time = DateTime.utc_now() |> DateTime.to_unix()
     current_second = rem(unix_time, @seconds_in_day)
-    current_hour = div(current_second, @seconds_in_hour) - 4
+    current_hour = div(current_second, @seconds_in_hour)
     initial_rate = Enum.at(Map.get(settings, :message_rates), current_hour)
     initial_duration = (@seconds_in_hour - rem(current_second, @seconds_in_hour)) * 1000
 

@@ -1,5 +1,6 @@
 defmodule MessagingSpike.Brokers.Rabbit do
   use GenServer
+  require Logger
 
   # Api
 
@@ -17,8 +18,8 @@ defmodule MessagingSpike.Brokers.Rabbit do
     end
   end
 
-  def publish(topic, payload, correlation_id \\ :undefined) do
-    GenServer.call(__MODULE__, {:publish, topic, payload, correlation_id})
+  def publish(topic, payload) do
+    GenServer.call(__MODULE__, {:publish, topic, payload})
   end
 
   def dequeue(topic) do
@@ -45,17 +46,78 @@ defmodule MessagingSpike.Brokers.Rabbit do
     GenServer.call(__MODULE__, {:bind, queue_name, exchange_name})
   end
 
-  def update_settings(settings_map) do
-    GenServer.call(__MODULE__, {:update_settings, :erlang.term_to_binary(settings_map)})
-  end
-
-  def ack(delivery_tag) do
-    GenServer.call(__MODULE__, {:ack, delivery_tag})
-  end
-
   # Callbacks
 
   def init(_init_arg) do
+    {:ok, connect()}
+  end
+
+  def handle_call(_, _, state = {nil, _, _}) do
+    {:reply, {:error, "Rabbit service is unavailable"}, state}
+  end
+
+  def handle_call({:publish, topic, payload}, _from, state = {chan, _, _}) do
+    {:reply, AMQP.Basic.publish(chan, "", topic, payload), state}
+  end
+
+  def handle_call(
+        {:rpc_publish, topic, payload, correlation_id, pid},
+        _from,
+        {chan, reply_queue, pid_map}
+      ) do
+    {:reply,
+     AMQP.Basic.publish(chan, "", topic, payload,
+       correlation_id: correlation_id,
+       reply_to: reply_queue
+     ), {chan, reply_queue, Map.put(pid_map, correlation_id, pid)}}
+  end
+
+  def handle_call({:dequeue, topic}, _from, state = {chan, _, _}),
+    do: {:reply, AMQP.Basic.get(chan, topic), state}
+
+  def handle_call({:add, queue}, _from, state = {chan, _, _}) do
+    {:reply, AMQP.Queue.declare(chan, queue), state}
+  end
+
+  def handle_call({:subscribe, topic, fun}, _from, state = {chan, _, _}) do
+    {:reply, AMQP.Queue.subscribe(chan, topic, fun), state}
+  end
+
+  def handle_call({:declare, topic, is_delete}, _from, state = {chan, _, _}) do
+    {:reply, AMQP.Queue.declare(chan, topic, durable: true, auto_delete: is_delete), state}
+  end
+
+  def handle_call({:declare_exchange, name}, _from, state = {chan, _, _}) do
+    {:reply, AMQP.Exchange.declare(chan, name, :fanout), state}
+  end
+
+  def handle_call({:bind, queue_name, exchange_name}, _from, state = {chan, _, _}) do
+    {:reply, AMQP.Queue.bind(chan, queue_name, exchange_name), state}
+  end
+
+  def handle_cast({:retry_connection}, _state) do
+    {:noreply, connect()}
+  end
+
+  def handle_info({:basic_consume_ok, %{consumer_tag: _tag}}, state) do
+    {:noreply, state}
+  end
+
+  def handle_info({:basic_deliver, message, meta}, state = {_chan, _reply_queue, pid_map}) do
+    send(Map.get(pid_map, Map.get(meta, :correlation_id)), message)
+    {:noreply, state}
+  end
+
+  def handle_info(
+        {:EXIT, _pid,
+         {:shutdown, {:connection_closing, {:server_initiated_close, 320, _message}}}},
+        _state
+      ) do
+    :timer.apply_after(5000, GenServer, :cast, [__MODULE__, {:retry_connection}])
+    {:noreply, {nil, nil, %{}}}
+  end
+
+  defp connect do
     {:ok,
      [
        host: host,
@@ -64,68 +126,19 @@ defmodule MessagingSpike.Brokers.Rabbit do
        password: _password
      ]} = Application.fetch_env(:messaging_spike, __MODULE__)
 
-    {:ok, conn} = AMQP.Connection.open("amqp://#{host}:#{port}")
-    {:ok, chan} = AMQP.Channel.open(conn)
-
-    {:ok, %{queue: reply_queue}} = AMQP.Queue.declare(chan, "", auto_delete: true)
-
-    {:ok, _sub_tag} = AMQP.Basic.consume(chan, reply_queue)
-
-    {:ok, {chan, reply_queue, %{}}}
-  end
-
-  def handle_call(command, _from, state = {chan, reply_queue, pid_map}) do
-    case command do
-      {:publish, topic, payload, correlation_id} ->
-        {:reply, AMQP.Basic.publish(chan, "", topic, payload, correlation_id: correlation_id),
-         state}
-
-      {:rpc_publish, topic, payload, correlation_id, pid} ->
-        {:reply,
-         AMQP.Basic.publish(chan, "", topic, payload,
-           correlation_id: correlation_id,
-           reply_to: reply_queue
-         ), {chan, reply_queue, Map.put(pid_map, correlation_id, pid)}}
-
-      {:rpc_reply, correlation_id, payload} ->
-        pid = Map.get(pid_map, correlation_id)
-        send(pid, payload)
-        {:reply, nil, state}
-
-      {:dequeue, topic} ->
-        {:reply, AMQP.Basic.get(chan, topic), state}
-
-      {:add, queue} ->
-        {:reply, AMQP.Queue.declare(chan, queue), state}
-
-      {:subscribe, topic, fun} ->
-        {:reply, AMQP.Queue.subscribe(chan, topic, fun), state}
-
-      {:declare, topic, is_delete} ->
-        {:reply, AMQP.Queue.declare(chan, topic, durable: true, auto_delete: is_delete), state}
-
-      {:declare_exchange, name} ->
-        {:reply, AMQP.Exchange.declare(chan, name, :fanout), state}
-
-      {:bind, queue_name, exchange_name} ->
-        {:reply, AMQP.Queue.bind(chan, queue_name, exchange_name), state}
-
-      {:ack, delivery_tag} ->
-        {:reply, AMQP.Basic.ack(chan, delivery_tag), state}
-
-      {:update_settings, settings_map} ->
-        {:reply, AMQP.Basic.publish(chan, "broadcast", "", settings_map), state}
-    end
-  end
-
-  def handle_info(message, state = {_chan, _reply_queue, pid_map}) do
-    case message do
-      {:basic_consume_ok, %{consumer_tag: _tag}} ->
-        {:noreply, state}
-
-      {:basic_deliver, message, meta} ->
-        send(Map.get(pid_map, Map.get(meta, :correlation_id)), message)
-        {:noreply, state}
+    with {:ok, conn} <- AMQP.Connection.open("amqp://#{host}:#{port}"),
+         {:ok, chan} <- AMQP.Channel.open(conn),
+         {:ok, %{queue: reply_queue}} <- AMQP.Queue.declare(chan, "", auto_delete: true),
+         {:ok, _reply_sub_tag} <- AMQP.Basic.consume(chan, reply_queue) do
+      AMQP.Queue.declare(chan, "heartbeat")
+      Process.flag(:trap_exit, true)
+      Process.link(Map.get(chan, :pid))
+      {chan, reply_queue, %{}}
+    else
+      e ->
+        Logger.error("Error connecting to rabbit #{inspect(e)}")
+        :timer.apply_after(5000, GenServer, :cast, [__MODULE__, {:retry_connection}])
+        {nil, nil, %{}}
     end
   end
 end
