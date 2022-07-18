@@ -10,7 +10,6 @@ services:
       - "15672:15672"
     environment:
       - RABBITMQ_CONFIG_FILE=/config/rabbitmq
-      - RABBITMQ_ERLANG_COOKIE=secret_cookie
     volumes:
       - $PWD/config/containers/rabbit/rabbit-1/rabbitmq.conf:/config/rabbitmq.conf
       - $PWD/config/containers/rabbit/rabbit-1/enabled_plugins:/etc/rabbitmq/enabled_plugins
@@ -24,7 +23,6 @@ services:
       - "15673:15672"
     environment:
       - RABBITMQ_CONFIG_FILE=/config/rabbitmq
-      - RABBITMQ_ERLANG_COOKIE=secret_cookie
     volumes:
       - $PWD/config/containers/rabbit/rabbit-2/rabbitmq.conf:/config/rabbitmq.conf
       - $PWD/config/containers/rabbit/rabbit-2/enabled_plugins:/etc/rabbitmq/enabled_plugins
@@ -38,7 +36,6 @@ services:
       - "15674:15672"
     environment:
       - RABBITMQ_CONFIG_FILE=/config/rabbitmq
-      - RABBITMQ_ERLANG_COOKIE=secret_cookie
     volumes:
       - $PWD/config/containers/rabbit/rabbit-3/rabbitmq.conf:/config/rabbitmq.conf
       - $PWD/config/containers/rabbit/rabbit-3/enabled_plugins:/etc/rabbitmq/enabled_plugins
@@ -67,57 +64,3 @@ services:
       - "4224:4222"
       - "8224:8222"
     command: --config nats-server.conf --jetstream --name gamma --routes nats://spike-nats-1:6222 --cluster nats://0.0.0.0:6222
-  kafka-1:
-    image: confluentinc/cp-kafka:7.0.1
-    container_name: spike-kafka-1
-    hostname: spike-kafka-1
-    ports:
-      # To learn about configuring Kafka for access across networks see
-      # https://www.confluent.io/blog/kafka-client-cannot-connect-to-broker-on-aws-on-docker-etc/
-      - "9092:9092"
-    depends_on:
-      - zookeeper
-    environment:
-      KAFKA_BROKER_ID: 1
-      KAFKA_ZOOKEEPER_CONNECT: 'spike-zookeeper:2181'
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092,PLAINTEXT_INTERNAL://spike-kafka-1:29092
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
-      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
-      KAFKA_HEAP_OPTS: -Xmx256M -Xms256M
-    healthcheck:
-      test: ["CMD", "nc", "-z", "-v", "localhost", "9092"]
-      interval: 30s
-      timeout: 10s
-      retries: 4
-  zookeeper:
-    image: confluentinc/cp-zookeeper:7.0.1
-    container_name: spike-zookeeper
-    environment:
-      ZOOKEEPER_CLIENT_PORT: 2181
-      ZOOKEEPER_TICK_TIME: 2000
-    ports:
-      - "2181:2181"
-    volumes:
-    - $PWD/config/containers/zookeeper/log:/var/lib/zookeeper/log
-    - $PWD/config/containers/zookeeper/data:/var/lib/zookeeper/data
-  redis:
-      image: "redis:7.0.2"
-      container_name: spike-redis-1
-      ports:
-        - "6379:6379"
-  messaging-spike:
-    image: kineticdata/messaging-spike:latest
-    container_name: messaging-spike
-    ports:
-      - "4000:4000"
-    environment:
-      RABBIT_HOST: spike-rabbit-1
-      NATS_HOST: spike-nats-1
-      KAFKA_HOST: spike-kafka-1
-      REDIS_HOST: spike-redis-1
-    depends_on:
-      - kafka-1
-      - rabbit-1
-      - nats-1
