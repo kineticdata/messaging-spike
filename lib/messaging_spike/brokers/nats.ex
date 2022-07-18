@@ -82,8 +82,9 @@ defmodule MessagingSpike.Brokers.Nats do
 
   def nats_port do
     env_port = System.get_env("NATS_PORT")
+
     if is_nil(env_port) do
-      9092
+      4222
     else
       String.to_integer(env_port)
     end

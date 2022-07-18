@@ -52,6 +52,3 @@ config :phoenix, :plug_init_mode, :runtime
 
 config :kafka_ex,
   disable_default_worker: true
-
-config :messaging_spike, MessagingSpike.Brokers.Kafka,
-  consumer_group: "test_group"

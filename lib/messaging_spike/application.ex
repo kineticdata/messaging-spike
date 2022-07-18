@@ -12,10 +12,10 @@ defmodule MessagingSpike.Application do
       MessagingSpikeWeb.Telemetry,
       # Start the PubSub system
       {Phoenix.PubSub, name: MessagingSpike.PubSub},
-      MessagingSpike.Brokers.Kafka,
+      # MessagingSpike.Brokers.Kafka,
       MessagingSpike.Brokers.Nats,
       MessagingSpike.Brokers.Rabbit,
-      MessagingSpike.Brokers.Redis,
+      # MessagingSpike.Brokers.Redis,
       MessagingSpike.Settings,
       MessagingSpike.Scheduler,
       # Start the Endpoint (http/https)
