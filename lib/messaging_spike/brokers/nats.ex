@@ -80,6 +80,12 @@ defmodule MessagingSpike.Brokers.Nats do
     {:noreply, {nil, %{}}}
   end
 
+  def handle_info({:EXIT, _, :timeout}, _) do
+    :timer.apply_after(5000, GenServer, :cast, [__MODULE__, {:retry_connection}])
+    {:noreply, {nil, %{}}}
+  end
+
+
   def nats_port do
     env_port = System.get_env("NATS_PORT")
 
