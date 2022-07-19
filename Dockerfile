@@ -33,4 +33,6 @@ RUN mix local.hex --force
 RUN mix local.rebar --force
 RUN mix do deps.get, deps.compile, compile
 
+EXPOSE 4000/tcp
+
 ENTRYPOINT [ "mix", "phx.server" ]
