@@ -120,8 +120,10 @@ defmodule MessagingSpike.Brokers.Rabbit do
   defp connect do
     host = System.get_env("RABBIT_HOST") || "localhost"
     port = System.get_env("RABBIT_PORT") || 5672
+    user = System.get_env("RABBIT_USER") || "guest"
+    pass = System.get_env("RABBIT_PASS") || "guest"
 
-    with {:ok, conn} <- AMQP.Connection.open("amqp://#{host}:#{port}"),
+    with {:ok, conn} <- AMQP.Connection.open("amqp://#{user}:#{pass}@#{host}:#{port}"),
          {:ok, chan} <- AMQP.Channel.open(conn),
          {:ok, %{queue: reply_queue}} <- AMQP.Queue.declare(chan, "", auto_delete: true),
          {:ok, _reply_sub_tag} <- AMQP.Basic.consume(chan, reply_queue) do
