@@ -2,12 +2,26 @@ defmodule MessagingSpike.Brokers.Rabbit do
   use GenServer
   require Logger
 
+  @retry_interval 5000
+
+
+  @typedoc """
+  A name of a Rabbit topic.
+  """
+  @type topic :: String.t()
+
+  @typedoc """
+  The topic subscription function.
+  """
+  @type callback_fun :: (String.t(), map() -> term)
+
   # Api
 
   def start_link(init_arg) do
     GenServer.start_link(__MODULE__, init_arg, name: __MODULE__)
   end
 
+  @spec rpc(topic(), term) :: term
   def rpc(topic, payload) do
     correlation_id = :erlang.unique_integer() |> :erlang.integer_to_binary() |> Base.encode64()
 
@@ -18,30 +32,37 @@ defmodule MessagingSpike.Brokers.Rabbit do
     end
   end
 
+  @spec publish(topic(), term) :: term
   def publish(topic, payload) do
     GenServer.call(__MODULE__, {:publish, topic, payload})
   end
 
+  @spec dequeue(topic()) :: term
   def dequeue(topic) do
     GenServer.call(__MODULE__, {:dequeue, topic})
   end
 
+  @spec add(String.t()) :: term
   def add(queue) do
     GenServer.call(__MODULE__, {:add, queue})
   end
 
+  @spec subscribe(topic(), callback_fun()) :: term
   def subscribe(topic, fun) do
     GenServer.call(__MODULE__, {:subscribe, topic, fun})
   end
 
+  @spec declare(topic(), boolean) :: term
   def declare(topic, is_delete) do
     GenServer.call(__MODULE__, {:declare, topic, is_delete})
   end
 
+  @spec declare_exchange(String.t()) :: term
   def declare_exchange(name) do
     GenServer.call(__MODULE__, {:declare_exchange, name})
   end
 
+  @spec bind(String.t(), String.t()) :: term
   def bind(queue_name, exchange_name) do
     GenServer.call(__MODULE__, {:bind, queue_name, exchange_name})
   end
@@ -113,8 +134,11 @@ defmodule MessagingSpike.Brokers.Rabbit do
          {:shutdown, {:connection_closing, {:server_initiated_close, 320, _message}}}},
         _state
       ) do
-    :timer.apply_after(5000, GenServer, :cast, [__MODULE__, {:retry_connection}])
     {:noreply, {nil, nil, %{}}}
+  end
+
+  defp schedule_retry() do
+    :timer.apply_after(@retry_interval, GenServer, :cast, [__MODULE__, {:retry_connection}])
   end
 
   defp connect do
@@ -134,7 +158,7 @@ defmodule MessagingSpike.Brokers.Rabbit do
     else
       e ->
         Logger.error("Error connecting to rabbit #{inspect(e)}")
-        :timer.apply_after(5000, GenServer, :cast, [__MODULE__, {:retry_connection}])
+        schedule_retry()
         {nil, nil, %{}}
     end
   end

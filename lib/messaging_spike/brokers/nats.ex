@@ -2,6 +2,8 @@ defmodule MessagingSpike.Brokers.Nats do
   use GenServer
   require Logger
 
+  @retry_interval 5000
+
   def start_link(init_arg) do
     GenServer.start_link(__MODULE__, init_arg, name: __MODULE__)
   end
@@ -71,12 +73,12 @@ defmodule MessagingSpike.Brokers.Nats do
   end
 
   def handle_info({:EXIT, conn, "connection closed"}, {conn, _}) do
-    :timer.apply_after(5000, GenServer, :cast, [__MODULE__, {:retry_connection}])
+    :timer.apply_after(@retry_interval, GenServer, :cast, [__MODULE__, {:retry_connection}])
     {:noreply, {nil, %{}}}
   end
 
   def handle_info({:EXIT, _, :econnrefused}, _) do
-    :timer.apply_after(5000, GenServer, :cast, [__MODULE__, {:retry_connection}])
+    :timer.apply_after(@retry_interval, GenServer, :cast, [__MODULE__, {:retry_connection}])
     {:noreply, {nil, %{}}}
   end
 
@@ -100,11 +102,11 @@ defmodule MessagingSpike.Brokers.Nats do
     host = System.get_env("NATS_HOST") || "localhost"
     port = nats_port()
 
-    with {:ok, conn} <- Gnat.start_link(%{host: host, port: port}) do
-      {conn, %{}}
-    else
+    case Gnat.start_link(%{host: host, port: port}) do
+      {:ok, conn} -> {conn, %{}}
       e ->
-        Logger.error("Error connecting to nats #{inspect(e)}")
+        Logger.error("Error connecting to NATS: #{inspect(e)}")
+        :timer.apply_after(5000, GenServer, :cast, [__MODULE__, {:retry_connection}])
         {nil, %{}}
     end
   end
